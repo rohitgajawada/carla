@@ -24,6 +24,7 @@ from carla.carla_server_pb2 import Control
 from carla import image_converter
 
 from human_control import HumanDriver
+from noiser import Noiser
 
 import configparser
 import h5py
@@ -118,12 +119,12 @@ class Recorder(object):
 			self.data_rewards[pos,2]  = actions.brake
 			self.data_rewards[pos,3]  = actions.hand_brake
 			self.data_rewards[pos,4]  = actions.reverse
-			# self.data_rewards[pos,5]  = action_noise.steer
-			self.data_rewards[pos,5] = 0
-			# self.data_rewards[pos,6]  = action_noise.throttle
-			self.data_rewards[pos,6] = 0
-			# self.data_rewards[pos,7]  = action_noise.brake
-			self.data_rewards[pos,7] = 0
+			self.data_rewards[pos,5]  = action_noise.steer
+			# self.data_rewards[pos,5] = 0
+			self.data_rewards[pos,6]  = action_noise.throttle
+			# self.data_rewards[pos,6] = 0
+			self.data_rewards[pos,7]  = action_noise.brake
+			# self.data_rewards[pos,7] = 0
 			self.data_rewards[pos,8]  = measurements.player_measurements.transform.location.x
 			self.data_rewards[pos,9]  = measurements.player_measurements.transform.location.y
 			self.data_rewards[pos,10]  = measurements.player_measurements.forward_speed
@@ -313,7 +314,8 @@ def run_carla_client(args):
 					client.send_control(control)
 
 				if args.record:
-					action_noisy = []
+					noiser = Noiser(noise_type='Spike', frequency=15, intensity = 5 ,min_noise_time_amount = 0.5)
+					action_noisy,drifting_time,will_drift = noiser.compute_noise(actions,speed)
 					direction = 2
 					actions = control
 					if measurements.player_measurements.forward_speed <=0.1:
